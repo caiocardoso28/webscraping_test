@@ -3,12 +3,32 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
 from datetime import datetime
 import pandas as pd
+import threading
+import time
+from selenium.common.exceptions import NoSuchElementException, ElementClickInterceptedException, NoSuchFrameException
 
-options = webdriver.ChromeOptions()
-options.add_experimental_option("detach", True)
-options.add_argument("--disable-popup-blocking")
-driver = webdriver.Chrome(options=options)
-driver.maximize_window()
+# options = webdriver.ChromeOptions()
+# options.add_experimental_option("detach", True)
+# options.add_argument("--disable-popup-blocking")
+# options.add_argument("--headless")
+driver = webdriver.Firefox()
+driver.fullscreen_window()
+
+
+def handle_popup(driver):
+    while True:
+        try:
+            # Replace with the actual selector of your popup
+            popup = driver.find_element(By.CLASS_NAME, "fb_lightbox-overlay fb_lightbox-overlay-fixed")
+            # Logic to close or handle the popup
+            # For example, clicking a close button or another part of the popup
+            # close_button = popup.find_element_by_...
+            # close_button.click()
+            print("POP UP ALERT")
+        except NoSuchElementException:
+
+            pass
+        time.sleep(0.3)
 
 
 def extract_date_and_room_options(date_and_room_div):
@@ -36,6 +56,7 @@ def scrape_prices(price_divs,
                   url=None,
                   departure_port=None):
     try:
+        print(len(price_divs))
         headers = {"Cabin_Type": [],
                    "Cruise_Name": [],
                    "Cruiseline": [],
@@ -50,6 +71,7 @@ def scrape_prices(price_divs,
                    "Vendor": []}
         cruise_type = cruise_type.replace("&amp;", "&")
         for price in price_divs:
+
             headers["Cabin_Type"].append(room)
             headers["Cruise_Name"].append(cruise_type)
             headers["Cruiseline"].append(cruise_line)
@@ -57,7 +79,7 @@ def scrape_prices(price_divs,
             headers["Departure_Port"].append(departure_port)
 
             partner = price.find_element(By.TAG_NAME, "img").get_attribute('alt')
-            value = price.find_element(By.CLASS_NAME, "css-1ksrhsy").get_property("innerHTML").replace("$", "") \
+            value = price.find_element(By.CLASS_NAME, "css-13x77ht").get_property("innerHTML").replace("$", "") \
                 .replace(",", "")
             parsed_date = datetime.strptime(date, "%b %d, %Y")
             departure_date = parsed_date.strftime("%-m/%-d/%Y")
@@ -73,9 +95,11 @@ def scrape_prices(price_divs,
             headers["Vendor"].append(partner)
 
         df = pd.DataFrame(headers)
+
         return df
     except Exception as e:
         print(e)
+
         return False
 
 
@@ -103,6 +127,7 @@ def scrape_listing(listing_div, url=None):
                 return
             ship_div = div.find_element(By.CLASS_NAME, "css-ox9b8b")
             ship = ship_div.find_element(By.TAG_NAME, "h3").get_property("innerHTML")
+            print(ship)
             return ship
         number_of_nights = ""
         cruise_type = ""
@@ -135,11 +160,11 @@ def scrape_listing(listing_div, url=None):
         cruise_ship = find_ship(listing_div)
         print(cruise_ship)
         if find_all_prices(listing_div):
-            pricing_div = listing_div.find_element(By.CLASS_NAME, "css-5r1xdy")
-            prices = pricing_div.find_elements(By.CLASS_NAME, "css-1n5d25x")
+            pricing_div = listing_div.find_element(By.CLASS_NAME, "css-1rgqn8m")
+            prices = pricing_div.find_elements(By.CLASS_NAME, "css-1atdv2e")
             # this contains selectors (if available)
             # selectors will change and with each change scrape_prices will be called
-            date_and_room_div = pricing_div.find_element(By.CLASS_NAME, "css-1lthe3j")
+            date_and_room_div = listing_div.find_element(By.CLASS_NAME, "css-1lthe3j")
             selectors = extract_date_and_room_options(date_and_room_div)
             if len(selectors) == 1:
                 frames = []
@@ -155,8 +180,8 @@ def scrape_listing(listing_div, url=None):
                             date = date_and_room_div.find_element(By.CLASS_NAME, "css-0").get_property("innerHTML")
                             print(date)
                         # re-evaluate prices on change before calling scrape_prices
-                        pricing_div = listing_div.find_element(By.CLASS_NAME, "css-5r1xdy")
-                        prices = pricing_div.find_elements(By.CLASS_NAME, "css-1n5d25x")
+                        pricing_div = listing_div.find_element(By.CLASS_NAME, "css-1rgqn8m")
+                        prices = pricing_div.find_elements(By.CLASS_NAME, "css-1atdv2e")
                         df = scrape_prices(prices,
                                            date=date,
                                            room=room,
@@ -168,7 +193,7 @@ def scrape_listing(listing_div, url=None):
                                            departure_port=port)
                         frames.append(df)
                 df = pd.concat(frames, ignore_index=True)
-                # print(df)
+                print(df)
                 return df
             elif len(selectors) == 2:
                 frames = []
@@ -182,8 +207,8 @@ def scrape_listing(listing_div, url=None):
                         date = selectors[1].all_selected_options[0].get_property("innerHTML")
                         print(date)
                         # re-evaluate prices on change before calling scrape_prices
-                        pricing_div = listing_div.find_element(By.CLASS_NAME, "css-5r1xdy")
-                        prices = pricing_div.find_elements(By.CLASS_NAME, "css-1n5d25x")
+                        pricing_div = listing_div.find_element(By.CLASS_NAME, "css-1rgqn8m")
+                        prices = pricing_div.find_elements(By.CLASS_NAME, "css-1atdv2e")
                         df = scrape_prices(prices,
                                            date=date,
                                            room=room,
@@ -195,7 +220,7 @@ def scrape_listing(listing_div, url=None):
                                            departure_port=port)
                         frames.append(df)
                 df = pd.concat(frames, ignore_index=True)
-                # print(df)
+                print(df)
                 return df
             else:
                 room_and_date = date_and_room_div.find_elements(By.CLASS_NAME, "css-0")
@@ -211,10 +236,32 @@ def scrape_listing(listing_div, url=None):
                                    ship=cruise_ship,
                                    url=url,
                                    departure_port=port)
-                # print(df)
+
+                print(df)
                 return df
         else:
             return False
+    except ElementClickInterceptedException:
+        # Handle specific case where click is intercepted
+        print("Element is obscured. Handling popup.")
+        time.sleep(2)
+        try:
+
+            driver.switch_to.frame("lightbox-iframe-5a6e2627-4470-403e-9c7b-52c4f7104bad")
+            # iframe_html_source = driver.page_source
+            # print(iframe_html_source)
+            popup = driver.find_element(By.CLASS_NAME, "button5")
+            popup.click()
+            driver.switch_to.default_content()
+            scrape_listing(listing_div, url=url)
+        except NoSuchFrameException:
+            print("Iframe not found.")
+        except NoSuchElementException:
+            print("Element inside iframe not found.")
+        except Exception as e:
+            print(e)
+        time.sleep(1)
+
     except Exception as e:
         print("broke in here")
         print(e)
@@ -224,11 +271,12 @@ def scrape_listing(listing_div, url=None):
 def scrape_listings(listing_divs, url=None):
     try:
         frames = []
-        for listing in listing_divs[:4]:
+        for listing in listing_divs:
             try:
                 df = scrape_listing(listing, url=url)
                 if not isinstance(df, bool):
-                    print(df)
+
+
                     frames.append(df)
 
             except Exception as e:
@@ -238,6 +286,8 @@ def scrape_listings(listing_divs, url=None):
                 continue
         # print(frames)
         df = pd.concat(frames)
+
+        print("listing data")
         return df
     except Exception as e:
         print(e)
@@ -249,13 +299,16 @@ def start_scraper():
     page = ""
     counter = 1
     frames = []
-    while counter <= 3:
+    while counter <= 5:
         url = f"https://www.cruisecritic.com/cruiseto/cruiseitineraries.cfm{page}"
         driver.get(url)
+        # driver.fullscreen_window()
 
-        listings = driver.find_elements(by=By.CLASS_NAME, value="css-zqdrpy")
+        # FIND ALL ELEMENTS THAT CONTAIN THIS DIV (LISTINGS)
+        listings = driver.find_elements(by=By.CLASS_NAME, value="css-1ovjqqy")
 
         print(len(listings))
+
         df = scrape_listings(listings, url=url)
         if not isinstance(df, bool):
             print(df)
@@ -266,7 +319,7 @@ def start_scraper():
 
         # scrape_listing(listings[0])
     df = pd.concat(frames, ignore_index=True)
-    df.to_csv("test_scraping.csv", index=False)
+    df.to_csv("test_scraping_2.csv", index=False)
 
 
 start_scraper()
