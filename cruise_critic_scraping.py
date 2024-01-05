@@ -15,21 +15,6 @@ driver = webdriver.Firefox()
 driver.fullscreen_window()
 
 
-def handle_popup(driver):
-    while True:
-        try:
-            # Replace with the actual selector of your popup
-            popup = driver.find_element(By.CLASS_NAME, "fb_lightbox-overlay fb_lightbox-overlay-fixed")
-            # Logic to close or handle the popup
-            # For example, clicking a close button or another part of the popup
-            # close_button = popup.find_element_by_...
-            # close_button.click()
-            print("POP UP ALERT")
-        except NoSuchElementException:
-
-            pass
-        time.sleep(0.3)
-
 
 def extract_date_and_room_options(date_and_room_div):
     try:
@@ -299,6 +284,7 @@ def start_scraper():
     page = ""
     counter = 1
     frames = []
+    # This number 5 can be changed to the total number of pages or code can be changed to run through pages until no more left
     while counter <= 5:
         url = f"https://www.cruisecritic.com/cruiseto/cruiseitineraries.cfm{page}"
         driver.get(url)
