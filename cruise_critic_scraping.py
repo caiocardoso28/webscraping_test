@@ -15,7 +15,7 @@ driver = webdriver.Firefox()
 driver.fullscreen_window()
 
 
-
+# This function serves as a helper function that scrapes the pricing/date combinations
 def extract_date_and_room_options(date_and_room_div):
     try:
         print(date_and_room_div.get_property("innerHTML"))
@@ -31,6 +31,8 @@ def extract_date_and_room_options(date_and_room_div):
         return []
 
 
+# This function  creates and returns a dataframe containing all relevant prices and other data for a single
+# listing
 def scrape_prices(price_divs,
                   room=None,
                   date=None,
@@ -88,6 +90,7 @@ def scrape_prices(price_divs,
         return False
 
 
+# This function creates and returns a small dataframe with data from a listing div
 def scrape_listing(listing_div, url=None):
     print(listing_div.get_property("innerHTML"))
     try:
@@ -253,6 +256,8 @@ def scrape_listing(listing_div, url=None):
         print()
 
 
+# this function facilitate passing each list div into the scrape listing function, which outputs a pandas
+# dataframe for each listing. This function finally concatenates and returns a dataframe with a full page of data
 def scrape_listings(listing_divs, url=None):
     try:
         frames = []
@@ -280,6 +285,8 @@ def scrape_listings(listing_divs, url=None):
         return False
 
 
+# Function responsible for accessing cruise critic link with all cruises, and finding the listing Divs
+# Function then takes a list of listing divs from each page and passes it into the scrape_listings function
 def start_scraper():
     page = ""
     counter = 1
